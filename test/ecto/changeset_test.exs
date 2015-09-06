@@ -669,6 +669,34 @@ defmodule Ecto.ChangesetTest do
     assert changeset.errors == [title: {"yada", count: 10}]
   end
 
+  test "validate_list_length/3" do
+    changeset = changeset(%{"topics" => ["Politics", "Security", "Economy", "Elections"]}) |> validate_list_length(:topics, min: 3, max: 7)
+    assert changeset.valid?
+    assert changeset.errors == []
+    assert changeset.validations == [topics: {:length, [min: 3, max: 7]}]
+
+    changeset = changeset(%{"topics" => ["Politics", "Security"]}) |> validate_list_length(:topics, min: 2, max: 2)
+    assert changeset.valid?
+
+    changeset = changeset(%{"topics" => ["Politics", "Security", "Economy"]}) |> validate_list_length(:topics, is: 3)
+    assert changeset.valid?
+
+    changeset = changeset(%{"topics" => ["Politics", "Security"]}) |> validate_list_length(:topics, min: 6, foo: true)
+    refute changeset.valid?
+    assert changeset.errors == [topics: {"should have at least %{count} items", count: 6}]
+
+    changeset = changeset(%{"topics" => ["Politics", "Security", "Economy"]}) |> validate_list_length(:topics, max: 2)
+    refute changeset.valid?
+    assert changeset.errors == [topics: {"should have at most %{count} items", count: 2}]
+
+    changeset = changeset(%{"topics" => ["Politics", "Security"]}) |> validate_list_length(:topics, is: 10)
+    refute changeset.valid?
+    assert changeset.errors == [topics: {"should have %{count} items", count: 10}]
+
+    changeset = changeset(%{"topics" => ["Politics", "Security"]}) |> validate_list_length(:topics, is: 10, message: "yada")
+    assert changeset.errors == [topics: {"yada", count: 10}]
+  end
+
   test "validate_number/3" do
     changeset = changeset(%{"upvotes" => 3})
                 |> validate_number(:upvotes, greater_than: 0)

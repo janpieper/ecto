@@ -1038,6 +1038,51 @@ defmodule Ecto.Changeset do
     {message(opts, "should be at most %{count} characters"), count: value}
 
   @doc """
+  Validates a change is a list of the given length.
+
+  ## Options
+
+    * `:is` - the list length must be exactly this value
+    * `:min` - the list length must be greater than or equal to this value
+    * `:max` - the list length must be less than or equal to this value
+    * `:message` - the message on failure, depending on the validation, is one of:
+      * "should have %{count} items"
+      * "should have at least %{count} items"
+      * "should have at most %{count} items"
+
+  ## Examples
+
+      validate_list_length(changeset, :users, min: 3)
+      validate_list_length(changeset, :topics, max: 100)
+      validate_list_length(changeset, :tags, min: 3, max: 100)
+      validate_list_length(changeset, :attachments, is: 9)
+
+  """
+  @spec validate_list_length(t, atom, Keyword.t) :: t
+  def validate_list_length(changeset, field, opts) when is_list(opts) do
+    validate_change changeset, field, {:length, opts}, fn
+      _, value when is_list(value) ->
+        length = length(value)
+        error  = ((is = opts[:is]) && wrong_list_length(length, is, opts)) ||
+                 ((min = opts[:min]) && list_too_short(length, min, opts)) ||
+                 ((max = opts[:max]) && list_too_long(length, max, opts))
+        if error, do: [{field, error}], else: []
+    end
+  end
+
+  defp wrong_list_length(value, value, _opts), do: nil
+  defp wrong_list_length(_length, value, opts), do:
+    {message(opts, "should have %{count} items"), count: value}
+
+  defp list_too_short(length, value, _opts) when length >= value, do: nil
+  defp list_too_short(_length, value, opts), do:
+    {message(opts, "should have at least %{count} items"), count: value}
+
+  defp list_too_long(length, value, _opts) when length <= value, do: nil
+  defp list_too_long(_length, value, opts), do:
+    {message(opts, "should have at most %{count} items"), count: value}
+
+  @doc """
   Validates the properties of a number.
 
   ## Options
